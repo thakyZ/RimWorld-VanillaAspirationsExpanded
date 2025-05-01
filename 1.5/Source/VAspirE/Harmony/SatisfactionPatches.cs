@@ -8,6 +8,17 @@ namespace VAspirE;
 
 public static class SatisfactionPatches
 {
+    private static bool TestIfTypeIsValid(System.Type type, string methodName)
+    {
+        return !type.IsAbstract
+            && type.IsDeclaredMember()
+            && type.GetMethods().FirstOrDefault(x => x.Name.Equals(methodName)) is System.Reflection.MethodInfo methodInfo
+            && !methodInfo.IsAbstract
+            && !methodInfo.IsVirtual
+            && methodInfo.IsDeclaredMember()
+            && methodInfo.HasMethodBody();
+    }
+
     public static void Apply(Harmony harm)
     {
         harm.Patch(AccessTools.Method(typeof(Pawn_RelationsTracker), "GainedOrLostDirectRelation"),
@@ -26,10 +37,14 @@ public static class SatisfactionPatches
             postfix: new(typeof(SatisfactionPatches), nameof(CheckGeneral)));
         harm.Patch(AccessTools.Method(typeof(Pawn_EquipmentTracker), nameof(Pawn_EquipmentTracker.AddEquipment)),
             postfix: new(typeof(SatisfactionPatches), nameof(CheckGeneral)));
-        foreach (var type in typeof(Precept_Role).AllSubclassesNonAbstract())
-            harm.Patch(AccessTools.Method(type, nameof(Precept_Role.Assign)),
-                postfix: new(typeof(SatisfactionPatches), nameof(CheckArgP)));
-         harm.Patch(AccessTools.Method(typeof(RitualOutcomeEffectWorker_ConnectToTree), nameof(RitualOutcomeEffectWorker_ConnectToTree.Apply)),
+        foreach (var type in typeof(Precept_Role).AllSubclassesNonAbstract()) {
+            if (TestIfTypeIsValid(type, nameof(Precept_Role.Assign))) {
+                harm.Patch(AccessTools.Method(type, nameof(Precept_Role.Assign)),
+                    postfix: new(typeof(SatisfactionPatches), nameof(CheckArgP)));
+            }
+        }
+
+        harm.Patch(AccessTools.Method(typeof(RitualOutcomeEffectWorker_ConnectToTree), nameof(RitualOutcomeEffectWorker_ConnectToTree.Apply)),
             postfix: new(typeof(SatisfactionPatches), nameof(OnTreeLinkGauranlen)));
         harm.Patch(AccessTools.Method(typeof(Pawn_AgeTracker), nameof(Pawn_AgeTracker.BirthdayBiological)),
             postfix: new(typeof(SatisfactionPatches), nameof(CheckGeneral)));
