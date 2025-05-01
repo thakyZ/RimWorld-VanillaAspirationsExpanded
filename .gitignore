@@ -1,0 +1,4 @@
+*.dds
+.vs/
+obj/
+bin/
